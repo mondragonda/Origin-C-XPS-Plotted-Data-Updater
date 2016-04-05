@@ -106,30 +106,52 @@ void XPSGraphExperimentUpdater::rebuildGraphs()
 		WorksheetPage worksheetPage(bookName);
 		WorksheetPage updatedWorksheetPage("update"+bookName);
 		
-		try{
+		//try{
 			for(int layerIndex=0; layerIndex < worksheetPage.Layers.Count(); layerIndex++)
 				{
 					Worksheet worksheet = worksheetPage.Layers(layerIndex);
 					Worksheet updatedWorksheet = updatedWorksheetPage.Layers(layerIndex);
 			
-					for(int columnIndex=0; columnIndex < worksheet.GetNumCols(); columnIndex++)
+					for(int columnIndex=0; columnIndex < updatedWorksheet.GetNumCols(); columnIndex++)
 						{
 		    	
 							Dataset dataSource(updatedWorksheet, columnIndex);
+							
+							
+							if(worksheet.Columns(columnIndex) == NULL)
+							{
+								int newColumnIndex = worksheet.AddCol();
+								
+								Dataset dataSet(worksheet, newColumnIndex);
+								
+								worksheet.Columns(newColumnIndex).SetLongName(updatedWorksheet.Columns(columnIndex).GetLongName());
+								worksheet.Columns(newColumnIndex).SetUnits(updatedWorksheet.Columns(columnIndex).GetUnits());
+							}
+							
+							if(worksheet.Columns(columnIndex).GetLongName() != updatedWorksheet.Columns(columnIndex).GetLongName())
+							{
+								string newColumnName;
+								worksheet.InsertCol(columnIndex, updatedWorksheet.Columns(columnIndex).GetLongName(), newColumnName, false);
+								
+							}
+							
 							Dataset dataSet(worksheet, columnIndex);
-						
+							
+							
 							dataSet = dataSource;
+							
+							
 							dataSet.Update(FALSE, REDRAW_REALTIME_SCOPE);
 		    	
 						}
 				}
-		}catch(int exceptionCode){
-			destroyTempBooks();
-		}
+		//}catch(int exceptionCode){
+			//destroyTempBooks();
+		//}
 
 	}			
 	
-	destroyTempBooks();
+	//destroyTempBooks();
 }
 
 void XPSGraphExperimentUpdater::destroyTempBooks()
