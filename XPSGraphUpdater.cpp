@@ -20,6 +20,7 @@ class XPSGraphExperimentUpdater
         void displaySucceedDialog();
         void importUpdatedData(string);
         void rebuildGraphs();
+        void deleteColumns();
         void destroyTempBooks();
         bool buttonevent(TreeNode& ,int,int,Dialog&);
 };
@@ -100,50 +101,79 @@ void XPSGraphExperimentUpdater::rebuildGraphs()
 	
 	Dataset dataSet;
 	
+	
 	for(int bookIndex=0; bookIndex < amountOfBooks; bookIndex++)
 	{
   		string bookName = booksNames[bookIndex];
 		WorksheetPage worksheetPage(bookName);
 		WorksheetPage updatedWorksheetPage("update"+bookName);
 		
+		int updatedBookAmountOfLayers = updatedWorksheetPage.Layers.Count();
+		int currentBookAmountOfLayers = worksheetPage.Layers.Count();
+		
+		out_int("Updated "+bookName+" Book Amount Of Layers: ", updatedBookAmountOfLayers);
+		out_int("Current "+bookName+" Book Amount of Layers: ", currentBookAmountOfLayers);
+		
 		//try{
-			for(int layerIndex=0; layerIndex < worksheetPage.Layers.Count(); layerIndex++)
+			for(int layerIndex=0; layerIndex <= updatedBookAmountOfLayers; layerIndex++)
 				{
 					Worksheet worksheet = worksheetPage.Layers(layerIndex);
 					Worksheet updatedWorksheet = updatedWorksheetPage.Layers(layerIndex);
-			
-					for(int columnIndex=0; columnIndex < updatedWorksheet.GetNumCols(); columnIndex++)
+					
+					if(updatedWorksheet == NULL)
+					{
+						worksheet.Destroy();
+					}
+					
+					if(worksheet == NULL)
+					{
+						int newLayerIndex = worksheetPage.AddLayer(updatedWorksheet);
+						worksheet = worksheetPage.Layers(newLayerIndex);
+					}
+					
+	
+				        
+				        string layerName = updatedWorksheet.GetName();
+				        
+				    	int updatedLayerAmountOfColumns = updatedWorksheet.GetNumCols();
+				    	
+				    	int currentLayerAmountOfColumns = worksheet.GetNumCols();
+				    	
+				    	int totalColumns = updatedLayerAmountOfColumns + currentLayerAmountOfColumns;
+				    	
+				    	out_int("Updated "+layerName+" Layer Amount Of Columns: ", updatedBookAmountOfLayers);
+						out_int("Current "+layerName+" Layer Amount of Columns: ", currentBookAmountOfLayers);
+						
+				    	
+				    	for(int columnIndex=0; columnIndex < totalColumns; columnIndex++)
 						{
-		    	
-							Dataset dataSource(updatedWorksheet, columnIndex);
-							
-							
-							if(worksheet.Columns(columnIndex) == NULL)
+						  if(updatedWorksheet.Columns(columnIndex) != NULL)
 							{
-								int newColumnIndex = worksheet.AddCol();
+								if(worksheet.Columns(columnIndex).GetLongName() != updatedWorksheet.Columns(columnIndex).GetLongName())
+								{
+									string newColumnName;
+									worksheet.InsertCol(columnIndex, updatedWorksheet.Columns(columnIndex).GetLongName(), newColumnName, false);
+								}
 								
-								Dataset dataSet(worksheet, newColumnIndex);
+								Dataset dataSource(updatedWorksheet, columnIndex);
+								Dataset dataSet(worksheet, columnIndex);
 								
-								worksheet.Columns(newColumnIndex).SetLongName(updatedWorksheet.Columns(columnIndex).GetLongName());
-								worksheet.Columns(newColumnIndex).SetUnits(updatedWorksheet.Columns(columnIndex).GetUnits());
-							}
-							
-							if(worksheet.Columns(columnIndex).GetLongName() != updatedWorksheet.Columns(columnIndex).GetLongName())
-							{
-								string newColumnName;
-								worksheet.InsertCol(columnIndex, updatedWorksheet.Columns(columnIndex).GetLongName(), newColumnName, false);
+								dataSet = dataSource;
+								
+								dataSet.Update(FALSE, REDRAW_REALTIME_SCOPE);
 								
 							}
-							
-							Dataset dataSet(worksheet, columnIndex);
-							
-							
-							dataSet = dataSource;
-							
-							
-							dataSet.Update(FALSE, REDRAW_REALTIME_SCOPE);
-		    	
+							else
+							{
+								bool success = worksheet.DeleteCol(columnIndex);
+							    if(success == true)
+							    	out_str("Deleted Column");
+							    else
+							    	out_str("Problem deleting column");
+							}
+									
 						}
+			
 				}
 		//}catch(int exceptionCode){
 			//destroyTempBooks();
