@@ -131,9 +131,14 @@ void XPSExperimentDataUpdater::addData()
 	{
 		string worksheetPageName = worksheetPage.GetLongName();
 		
+		if(worksheetPageName == NULL)
+			worksheetPageName = worksheetPage.GetName();
+		
 		if(worksheetPageNameDoesNotContainUpdateWord(worksheetPageName))
 		{
-			WorksheetPage updatedWorksheetPage = getWorksheetPageByName("update"+worksheetPageName);
+			WorksheetPage updatedWorksheetPage("UpdatedWorksheetPage");
+			
+			updatedWorksheetPage = getWorksheetPageByName("update"+worksheetPageName);
 			
 			if(updatedWorksheetPage != NULL)
 			{
@@ -183,18 +188,22 @@ bool XPSExperimentDataUpdater::worksheetPageNameDoesNotContainUpdateWord(string 
 
 WorksheetPage XPSExperimentDataUpdater::getWorksheetPageByName(string worksheetPageName)
 {
-	foreach(WorksheetPage worksheetPage in projectWorksheetPages)
+	WorksheetPage worksheetPage("WorksheetPage");
+	
+	foreach(WorksheetPage projectWorksheetPage in projectWorksheetPages)
 	{
-		if(  worksheetPage.GetLongName() == worksheetPageName
-		   ||worksheetPage.GetName() == worksheetPageName)
+		if(  projectWorksheetPage.GetLongName() == worksheetPageName
+		   ||projectWorksheetPage.GetName() == worksheetPageName)
 			{
-				return worksheetPage;
+				worksheetPage = projectWorksheetPage;
+				
+				return worksheetPage ;
 				
 				break;
 			}
 	}
 	
-	return NULL;
+	return  worksheetPage;
 }
 
 bool XPSExperimentDataUpdater::updatedLayerExistsInOriginalWorksheetPage(Collection<Layer> originalWorksheetPageLayers, Layer updatedLayer)
@@ -332,9 +341,14 @@ void XPSExperimentDataUpdater::deleteData()
 	{
 		string worksheetPageName = worksheetPage.GetLongName();
 		
+		if(worksheetPageName == NULL)
+			worksheetPageName = worksheetPage.GetName();
+		
 		if(worksheetPageNameDoesNotContainUpdateWord(worksheetPageName))
 		{
-			WorksheetPage updatedWorksheetPage = getWorksheetPageByName("update"+worksheetPageName);
+			WorksheetPage updatedWorksheetPage("UpdatedWorksheetPage");
+			
+			updatedWorksheetPage = getWorksheetPageByName("update"+worksheetPageName);
 			
 			if(updatedWorksheetPage != NULL)
 			{
