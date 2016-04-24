@@ -29,6 +29,8 @@ private:
 	void addExperimentBackgroundColumnIdentifier();
 	void addExperimentEnvelopeColumnIdentifier();
 	void addExperimentColumnIdentifier();
+	void destroyDefaultCreatedBooks();
+	void changeFileName(string oldFilePath);
     void separateExperiments();
     void bindLayer(string, Worksheet, string);
     bool experimentWorksheetPageAlreadyExist(string);
@@ -61,19 +63,22 @@ bool XPSExperimentImporter::isValidPath(string path)
 bool XPSExperimentImporter::importExperimentFile(string path)
 {
 	ASCIMP	asciiImporter;
-	WorksheetPage wksPg("Book1");
-
-	if (wksPg)
-		wksPg.Destroy();
+	
+	WorksheetPage wsp("Book1");
+	
+	if(wsp != NULL)
+		wsp.Destroy();
+	
 
 	if (path.IsEmpty())
 		return false;
-
+	
 	if(AscImpReadFileStruct(path, &asciiImporter) == 0)
 	{
 		Worksheet wks;
-		wks.Create("Experiments data",CREATE_TEMP);
-
+		wks.Create("Experiment Data", CREATE_TEMP);
+		asciiImporter.iRenameWks = 0;
+		
 		int importOperationResult = wks.ImportASCII(path, asciiImporter);
 		
 		if(importOperationResult == 0)
@@ -94,6 +99,12 @@ bool XPSExperimentImporter::importExperimentFile(string path)
 
 	return false;
 		
+}
+
+void XPSExperimentImporter::destroyDefaultCreatedBooks()
+{
+	foreach(WorksheetPage worksheetPage in Project.WorksheetPages)
+		worksheetPage.Destroy();
 }
 
 void XPSExperimentImporter::setExperimentFileName()
@@ -222,12 +233,19 @@ int XPSExperimentImporter::getNumberOfExperiments()
 string XPSExperimentImporter::getNameBeforeCompound(string block)
 {
 	string name = "";
-	int index = block.ReverseFind('_');
+	int index = block.ReverseFind('&');
 
-	for(int i = 0; i < index; i++)
+	if(block[index-1] == ' ')
+		index = index-2;
+	
+	if(block[index+1] != ' ')
+		index = index-3;
+
+	for(int i = 0; i <= index; i++)
 	{
 		string temporal = block[i];
-		name += temporal;
+		if(temporal != "&")
+			name += temporal;
 	}	
 	return name;
 }
@@ -236,7 +254,7 @@ string XPSExperimentImporter::getCompound(string experimentName)
 {
 	string name = "";
 	
-	int startingIndex = experimentName.ReverseFind('_');	
+	int startingIndex = experimentName.ReverseFind('&');	
 	int finalIndex = experimentName.ReverseFind(':');
 	
 	if(startingIndex != -1 && finalIndex != -1)
@@ -357,7 +375,10 @@ void XPSExperimentImporter::bindLayer(string layerName, Worksheet layerWorksheet
 				Column nextColumn(experimentWorksheet, i+1);
 				string nextColumnName = nextColumn.GetLongName();
 				
-				if(nextColumnName.Find("_"+layerName) > - 1)
+				string nextColumnCompound = getCompound(nextColumnName);
+	
+				
+				if(nextColumnCompound == layerName)
 				{
 					Column layerWorksheetColumn(layerWorksheet, layerWorksheetColumnIndex);
 			     
@@ -387,7 +408,9 @@ void XPSExperimentImporter::bindLayer(string layerName, Worksheet layerWorksheet
 				Column previousColumn(experimentWorksheet, i-2);
 				string previousColumnName = previousColumn.GetLongName();
 				
-				if(previousColumnName.Find("_"+layerName) > - 1)
+				string previousColumnCompound = getCompound(previousColumnName);
+				
+				if(previousColumnCompound == layerName)
 				{
 					Column layerWorksheetColumn(layerWorksheet, layerWorksheetColumnIndex);
 			     
@@ -415,7 +438,9 @@ void XPSExperimentImporter::bindLayer(string layerName, Worksheet layerWorksheet
 				Column previousColumn(experimentWorksheet, i-1);
 				string previousColumnName = previousColumn.GetLongName();
 				
-				if(previousColumnName.Find("_"+layerName) > - 1)
+				string previousColumnCompound = getCompound(previousColumnName);
+				
+				if(previousColumnCompound == layerName)
 				{
 					Column layerWorksheetColumn(layerWorksheet, layerWorksheetColumnIndex);
 			     
@@ -437,8 +462,10 @@ void XPSExperimentImporter::bindLayer(string layerName, Worksheet layerWorksheet
 						layerWorksheetColumnIndex++;
 				}
 			}
+			
+			string columnCompound = getCompound(column.GetLongName());
 			    
-			if(column.GetLongName().Find("_"+layerName) > -1)
+			if(columnCompound == layerName)
 			{
 				Column layerWorksheetColumn(layerWorksheet, layerWorksheetColumnIndex);
 			     
@@ -475,7 +502,8 @@ bool XPSExperimentImporter::experimentWorksheetPageAlreadyExist(string experimen
 	{
 		WorksheetPage worksheetPage = Project.WorksheetPages(worksheetPageIndex);
 		
-		if(worksheetPage.GetLongName() == experimentWorksheetPageName)
+		if(worksheetPage.GetLongName() == experimentWorksheetPageName 
+		   ||worksheetPage.GetName() == experimentWorksheetPageName)
 		{
 			return true;
 		}
@@ -602,9 +630,10 @@ bool XPSExperimentImporter::columnNameIncludesCompound(string columnName)
 {
     bool included;
     
-    if(columnName.Find("_") > -1)
+    if(columnName.Find("&") > -1)
     	return included = true;
     else
         return included = false;
 }
+
 
